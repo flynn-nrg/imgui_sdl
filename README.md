@@ -1,3 +1,9 @@
+# NOTE
+
+SDL 2.0.18 added `SDL_RenderGeometry` and Dear ImGui 1.85 has an `SDL_Renderer` dedicated backend, so starting from SDL 2.0.18 and Dear ImGui 1.85v you should have no reason to use this! You will get a much better experience using a properly hardware accelerated rendering implementation and a backend from the Dear ImGui repository itself. For this reason this repository is archived.
+
+Alternatively if you cannot for some reason update, consider using a regular `_dx11` or `_opengl3` renderer (change depending on platform) from the official Dear ImGui backends, they work with SDL and will be much much faster and accurate than this essentially software based implementation which suffers from rendering artifacts and performance issues.
+
 # imgui_sdl
 
 ImGuiSDL is a lightweight SDL2 based renderer for [Dear ImGui](https://github.com/ocornut/imgui). Dear ImGui is designed to be easily rendered using modern 3D renderers like OpenGL or DirectX, but while SDL2's renderer does use hardware acceleration (the beforementioned APIs) behind the scenes, it does not provide an interface to pass generic vertex data to OpenGL. ImGuiSDL implements the rendering using a combination of a software based triangle rasterizer and a simple textured/filled rectangle drawer from SDL2. To improve the performance, the slower triangle blits are cached into render textures.
