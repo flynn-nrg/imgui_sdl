@@ -618,8 +618,8 @@ void Render(ImDrawData *drawData) {
       if (drawCommand->UserCallback) {
         drawCommand->UserCallback(commandList, drawCommand);
       } else {
-        const bool isWrappedTexture =
-            (uintptr_t)drawCommand->GetTexID() == (uintptr_t)io.Fonts->TexID;
+        const bool isWrappedTexture = (uintptr_t)drawCommand->GetTexID() ==
+                                      *(uintptr_t *)&io.Fonts->TexID;
 
         // Loops over triangles.
         for (unsigned int i = 0; i + 3 <= drawCommand->ElemCount; i += 3) {
