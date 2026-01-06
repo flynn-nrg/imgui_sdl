@@ -662,15 +662,13 @@ void Render(ImDrawData *drawData) {
               const bool doVerticalFlip = v2.uv.x < v0.uv.x;
 
               if (isWrappedTexture) {
-                DrawRectangle(
-                    bounding,
-                    static_cast<const Texture *>(drawCommand->TextureId),
-                    Color(v0.col), doHorizontalFlip, doVerticalFlip);
+                DrawRectangle(bounding,
+                              (Texture *)(uintptr_t)drawCommand->GetTexID(),
+                              Color(v0.col), doHorizontalFlip, doVerticalFlip);
               } else {
-                DrawRectangle(
-                    bounding,
-                    static_cast<SDL_Texture *>(drawCommand->TextureId),
-                    Color(v0.col), doHorizontalFlip, doVerticalFlip);
+                DrawRectangle(bounding,
+                              (SDL_Texture *)(uintptr_t)drawCommand->GetTexID(),
+                              Color(v0.col), doHorizontalFlip, doVerticalFlip);
               }
 
               i += 3; // Additional increment to account for the extra 3
@@ -687,7 +685,7 @@ void Render(ImDrawData *drawData) {
             // to work.
             assert(isWrappedTexture);
             DrawTriangle(v0, v1, v2,
-                         static_cast<const Texture *>(drawCommand->TextureId));
+                         (Texture *)(uintptr_t)drawCommand->GetTexID());
           }
         }
       }
