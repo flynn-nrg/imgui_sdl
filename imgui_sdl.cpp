@@ -123,8 +123,12 @@ struct Color {
   }
 };
 
+// Forward declaration
+struct Texture;
+
 struct Device {
   SDL_Renderer *Renderer;
+  Texture *FontTexture = nullptr;  // Store the font texture here
 
   struct ClipRect {
     int X, Y, Width, Height;
@@ -555,7 +559,9 @@ void Initialize(SDL_Renderer *renderer, int windowWidth, int windowHeight) {
   ImGui::GetStyle().AntiAliasedFill = false;
   ImGui::GetStyle().AntiAliasedLines = false;
 
-  // Loads the font texture.
+  // Create the device first so we can store the font texture
+  CurrentDevice = new Device(renderer);
+
   unsigned char *pixels;
   int width, height;
   io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
@@ -567,18 +573,21 @@ void Initialize(SDL_Renderer *renderer, int windowWidth, int windowHeight) {
   Texture *texture = new Texture();
   texture->Surface = surface;
   texture->Source = SDL_CreateTextureFromSurface(renderer, surface);
-  io.Fonts->TexID = (void *)texture;
 
-  CurrentDevice = new Device(renderer);
+  // Store the font texture in the device and set the texture ID via the new API
+  CurrentDevice->FontTexture = texture;
+  io.Fonts->SetTexID(reinterpret_cast<ImTextureID>(texture));
 }
 
 void Deinitialize() {
-  // Frees up the memory of the font texture.
-  ImGuiIO &io = ImGui::GetIO();
-  Texture *texture = *(Texture **)&io.Fonts->TexID;
-  delete texture;
+  // Delete the font texture stored in the device
+  if (CurrentDevice && CurrentDevice->FontTexture) {
+    delete CurrentDevice->FontTexture;
+    CurrentDevice->FontTexture = nullptr;
+  }
 
   delete CurrentDevice;
+  CurrentDevice = nullptr;
 }
 
 void Render(ImDrawData *drawData) {
@@ -618,8 +627,10 @@ void Render(ImDrawData *drawData) {
       if (drawCommand->UserCallback) {
         drawCommand->UserCallback(commandList, drawCommand);
       } else {
-        const bool isWrappedTexture = (uintptr_t)drawCommand->GetTexID() ==
-                                      *(uintptr_t *)&io.Fonts->TexID;
+        // Get the texture ID from the draw command and compare with font texture
+        ImTextureID cmdTexID = drawCommand->GetTexID();
+        ImTextureID fontTexID = io.Fonts->TexRef.GetTexID();
+        const bool isWrappedTexture = (cmdTexID == fontTexID);
 
         // Loops over triangles.
         for (unsigned int i = 0; i + 3 <= drawCommand->ElemCount; i += 3) {
@@ -662,13 +673,13 @@ void Render(ImDrawData *drawData) {
               const bool doVerticalFlip = v2.uv.x < v0.uv.x;
 
               if (isWrappedTexture) {
-                DrawRectangle(bounding,
-                              (Texture *)(uintptr_t)drawCommand->GetTexID(),
-                              Color(v0.col), doHorizontalFlip, doVerticalFlip);
+                // Use the font texture stored in the device
+                DrawRectangle(bounding, CurrentDevice->FontTexture, Color(v0.col),
+                              doHorizontalFlip, doVerticalFlip);
               } else {
-                DrawRectangle(bounding,
-                              (SDL_Texture *)(uintptr_t)drawCommand->GetTexID(),
-                              Color(v0.col), doHorizontalFlip, doVerticalFlip);
+                // For user textures, the ImTextureID is the SDL_Texture pointer
+                DrawRectangle(bounding, reinterpret_cast<SDL_Texture *>(cmdTexID), Color(v0.col),
+                              doHorizontalFlip, doVerticalFlip);
               }
 
               i += 3; // Additional increment to account for the extra 3
@@ -684,8 +695,8 @@ void Render(ImDrawData *drawData) {
             // font texture. Dunno if that's what actually happens, but it seems
             // to work.
             assert(isWrappedTexture);
-            DrawTriangle(v0, v1, v2,
-                         (Texture *)(uintptr_t)drawCommand->GetTexID());
+            // Use the font texture stored in the device
+            DrawTriangle(v0, v1, v2, CurrentDevice->FontTexture);
           }
         }
       }
